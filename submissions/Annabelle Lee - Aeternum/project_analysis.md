@@ -22,7 +22,7 @@
     - **通信节点**: **[HyperBEAM](https://github.com/permaweb/hyperbeam)**，作为 AO 核心协议的参考实现，它扮演着 AO 节点的角色，并原生支持 HTTP 协议，允许浏览器等 Web2 环境与 AO 网络直接通信。代码中的 `apusHyperbeamNodeUrl` 即指向一个 HyperBEAM 节点。
     - **AI 推理**: **[APUS Network](https://www.apus.network/)**，一个去中心化的 GPU 网络，被 AO Process (`agent.lua`) 调用以执行 AI 计算任务。
     - **合约语言**: **Lua**，用于编写在 AO 上运行的 Process (`agent.lua`)。
-    - **客户端库**: `@permaweb/aoconnect` 和 `arweave-wallet-kit`，用于前端与 AO 和 Arweave 钱包的交互。
+    - **客户端库**: 项目的 `package.json` 中包含了 `@permaweb/aoconnect` 和 `arweave-wallet-kit`。这表明了与 AO 和 Arweave 钱包交互的**意图**。
 - **开发过程**: `src/guidelines/Guidelines.md` 文件的存在表明，开发者可能使用了 **AI 辅助编程工具**（如代码助手或 Figma-to-code 工具）来生成部分代码，并为其提供了详细的开发和设计准则。
 
 ## 3. 实现状态分析
@@ -53,6 +53,7 @@
 2.  **代码实现脱节且不一致**:
     - **实现脱节**: 项目中存在两套独立的实现：一套是核心的 **React 应用**，另一套是 `src/scripts/` 目录下的**原生 JavaScript 模拟脚本**。这两套代码在功能上（如钱包连接、内容管理）有重叠，但并未互相调用或集成，表明项目可能处于一个混合了不同开发思路或阶段的状态。
     - **数据结构不一致**: 不同实现之间缺乏统一规范。例如，`ArchiveItem` 的 `id` 在 React 组件 (`AdminPanel.tsx`) 中被定义为 `string`，但在 mock 数据 (`App.tsx`) 中却是 `number`，这直接证明了代码的脱节问题。
+    - **SDK 使用不一致**: 尽管 `package.json` 中引入了 `@permaweb/aoconnect`，但 `src/hooks/useAOClient.ts` 中与 AO 的交互**并未使用该 SDK**，而是采用了更底层的、手动的 `fetch` API 调用。这进一步加剧了代码实现的不一致性，并表明项目可能处于一个尚未完成重构的早期阶段。
 
 3.  **认证与授权系统不完整**:
     - **钱包连接逻辑缺失**: 尽管主页 (`NewHomePage.tsx`) 中渲染了 `arweave-wallet-kit` 的 `ConnectButton` 组件，但其 `onClick` 事件是一个空函数。这意味着用户虽然能看到连接按钮，但点击后**不会发生任何实际的钱包连接行为**。
@@ -78,7 +79,9 @@
 
 它拥有一个使用 React 和 `shadcn/ui` 构建的、非常完善和现代化的前端 UI。其 Web3 架构展示了通过 **HyperBEAM** 节点将 Web2 前端与 **AO** 后端及 **APUS** 去中心化计算网络连接起来的先进模式。开发者可能还使用了 AI 辅助工具进行开发。
 
-然而，项目存在两套并行的、数据结构不一致的实现逻辑（React 应用 vs. 原生 JS 脚本），它们并未整合。其已实现的后端功能（AI 聊天代理）与 `README.md` 中宏大的“数字遗产档案库”构想存在较大差距。项目的核心业务——创建、加密、订阅和管理品牌档案库的功能尚未实现，这一点从代码中多个 `TODO` 注释、未使用的 `Balances` 变量以及缺失的钱包连接逻辑中得到了直接印证。并且，项目当前的核心数据严重依赖 **Supabase** 这一中心化服务，而非 Arweave，这与项目初衷相悖。
+然而，项目存在两套并行的、数据结构不一致的实现逻辑（React 应用 vs. 原生 JS 脚本），它们并未整合。其已实现的后端功能（AI 聊天代理）与 `README.md` 中宏大的“数字遗产档案库”构想存在较大差距。**更关键的是，项目虽然引入了 `@permaweb/aoconnect` 依赖，但在实际功能中却绕过了它，这强烈暗示了项目尚未完成技术选型的统一和代码的最终实现。**
+
+项目的核心业务——创建、加密、订阅和管理品牌档案库的功能尚未实现，这一点从代码中多个 `TODO` 注释、未使用的 `Balances` 变量以及缺失的钱包连接逻辑中得到了直接印证。并且，项目当前的核心数据严重依赖 **Supabase** 这一中心化服务，而非 Arweave，这与项目初衷相悖。
 
 **结论**: 该项目有一个出色的“外壳”（UI/UX）和一个技术上很有趣的 Web3 集成模式，但其“内核”（核心业务逻辑和去中心化数据存储）仍有待开发，且现有代码库需要进行整合与规范。开发者在前端和 Web3 技术整合方面表现出很高的水平，但需要将重心转移到实现 `README.md` 中描述的核心业务功能上（例如，通过编写 AO Process 来实现 NFT 合约），并清理和统一当前脱节的代码。
 
@@ -104,3 +107,57 @@
 
 - **CommunityXYZ**: Arweave 上的一个社区管理平台，是原子资产和 Perma-NFT 的早期和重要实践者，其代码库是理解早期 Arweave dApp 设计的宝贵资料。
     - **GitHub 组织**: [https://github.com/CommunityXYZ](https://github.com/CommunityXYZ)
+
+## 6. AO 网络兼容性分析：HyperBEAM vs. 遗留网络 (Legacy Network)
+
+### Aeternum 项目的网络选择
+
+**结论先行：本项目明确使用了 AO 最新的、基于 G8 网关和 HyperBEAM 的网络架构。**
+
+这一点从 `src/hooks/useAOClient.ts` 的实现中可以得到直接证实。代码通过 `fetch` API 直接与一个名为 `apusHyperbeamNodeUrl` 的 HTTP 端点进行交互。这个端点就是一个 **HyperBEAM 节点**，它扮演了 AO 网络统一网关的角色。这种模式是当前 AO 生态推荐的最新实践，它将客户端与底层复杂的读（CU）/写（MU）单元解耦。
+
+### SDK 兼容性与开发者指南
+
+对于 AO 开发者而言，理解两种网络架构的差异以及 `@permaweb/aoconnect` 等 SDK 如何处理这种差异至关重要。
+
+1.  **两种网络架构**
+    *   **遗留网络 (Legacy Network)**: 这是 AO 早期的网络模型。客户端应用需要知道并分别连接两个不同的服务单元：
+        *   **信使单元 (Messenger Unit, MU)**: 负责接收交易/消息，并将其永久记录到 Arweave。
+        *   **计算单元 (Compute Unit, CU)**: 负责执行计算（读取 Arweave 上的消息）并返回 Process 的最新状态。
+        这种架构对客户端来说更复杂，需要管理两个不同的连接端点。
+    *   **最新网络 (G8 Gateway / HyperBEAM)**: 这是 AO 目前主推的网络模型。它引入了一个**网关 (Gateway)** 层，而 **HyperBEAM** 是其官方参考实现。该网关提供一个**统一的 HTTP 端点**，智能地将客户端的请求路由到后端的 MU 和 CU。这极大地简化了客户端的开发，使其能像与传统 Web API 交互一样与 AO 交互。
+
+2.  **`@permaweb/aoconnect` 的兼容策略**
+    官方 SDK `@permaweb/aoconnect` 被设计为**同时兼容**这两种网络。其核心区别在于 `connect()` 函数的初始化参数，开发者通过提供不同的端点信息来指定目标网络：
+
+    *   **连接遗留网络**: 开发者需要分别提供 `MU_URL` 和 `CU_URL`。
+        ```javascript
+        import { connect } from '@permaweb/aoconnect';
+
+        const ao = connect({
+          MU_URL: 'https://mu.legacy.ao.net',
+          CU_URL: 'https://cu.legacy.ao.net'
+        });
+        ```
+
+    *   **连接最新网络 (推荐)**: 开发者只需提供一个统一的入口点。根据 SDK 版本和文档，这通常通过 `gateway` 或 `URL` 这样的参数来实现，其值指向一个 HyperBEAM 节点。
+        ```javascript
+        import { connect } from '@permaweb/aoconnect';
+
+        // 示例 1: 使用 gateway 参数
+        const ao_modern_1 = connect({
+          gateway: 'https://arweave.g8way.io' // 指向一个现代网关节点
+        });
+
+        // 示例 2: 某些文档中也可能看到直接使用 URL
+        const ao_modern_2 = connect({
+          URL: 'http://localhost:8734' // 指向本地运行的 HyperBEAM 节点
+        });
+        ```
+    **关键点**：开发者需要关注的不是具体的参数名（它可能随 SDK 版本演进），而是其连接模式——是连接到分离的 MU/CU，还是连接到一个统一的网关节点。
+
+3.  **给开发者的核心建议**
+    *   **明确目标**: 在与一个 AO Process 交互前，必须先确认它部署在哪种网络上。
+    *   **拥抱最新标准**: 对于所有新项目，都应**优先选择在最新的 G8/HyperBEAM 网络上进行开发和部署**。这不仅简化了开发，也确保了更好的性能和面向未来的兼容性。
+    *   **检查配置**: 在维护或调试一个 AO 项目时，应首先检查 `aoconnect` 的初始化配置，以确定其连接模式。
+    *   **迁移是长久之计**: 如果必须与一个部署在遗留网络上的老旧 Process 交互，虽然可以通过配置 `MU_URL` 和 `CU_URL` 来实现，但长期来看，更稳妥的方案是将其迁移到新的网络架构上。
