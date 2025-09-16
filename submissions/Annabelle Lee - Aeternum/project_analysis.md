@@ -23,6 +23,7 @@
     - **AI 推理**: **[APUS Network](https://www.apus.network/)**，一个去中心化的 GPU 网络，被 AO Process (`agent.lua`) 调用以执行 AI 计算任务。
     - **合约语言**: **Lua**，用于编写在 AO 上运行的 Process (`agent.lua`)。
     - **客户端库**: 项目的 `package.json` 中包含了 `@permaweb/aoconnect` 和 `arweave-wallet-kit`。这表明了与 AO 和 Arweave 钱包交互的**意图**。
+- **后端服务**: **[Supabase](https://supabase.com/)**，一个开源的 PostgreSQL 兼容数据库服务平台，提供认证、实时订阅、文件存储等功能，被用作中心化的数据存储解决方案。
 - **开发过程**: `src/guidelines/Guidelines.md` 文件的存在表明，开发者可能使用了 **AI 辅助编程工具**（如代码助手或 Figma-to-code 工具）来生成部分代码，并为其提供了详细的开发和设计准则。
 
 ## 3. 实现状态分析
@@ -33,8 +34,16 @@
     - 项目的核心是一个基于 React 和 TypeScript 的单页应用，结构清晰，实现了基于本地状态的简单页面路由。
     - 集成了大量 `shadcn/ui` 组件，构建了现代化且美观的用户界面，并包含 `ChatWidget` 和 `ChatbotWidget` 等交互组件。
 
-2.  **完整的后台管理功能 (通过中心化服务)**:
-    - `AdminPanel.tsx` 组件提供了一个功能完备的管理后台，支持对品牌（Brands）和档案（Archive Items）的完整 CRUD（创建、读取、更新、删除）操作。所有操作均通过 `fetch` API 调用一个 **Supabase** 后端服务来实现。
+2.  **完整的后台管理功能 (通过 Supabase)**:
+    - `AdminPanel.tsx` 组件提供了一个功能完备的管理后台，支持对品牌（Brands）和档案（Archive Items）的完整 CRUD（创建、读取、更新、删除）操作。
+    - **Supabase 集成方式**: 通过 `fetch` API 直接调用 Supabase 的 Edge Functions (`functions/v1/make-server-8aa26b6f`)，使用 Bearer Token 认证。
+    - **核心功能实现**:
+        - **品牌管理**: 支持品牌的创建、读取、更新、删除，以及图片上传和元数据管理
+        - **档案管理**: 支持档案项目的完整生命周期管理，包括标题、描述、图片、分类等
+        - **文件存储**: 通过 Supabase Storage 实现图片上传和管理
+        - **数据结构**: 使用 TypeScript 定义了完整的 Brand 和 ArchiveItem 接口
+    - **配置信息**: 项目使用 Supabase 项目 ID `uuyzyyoqzaqomsngggja` 和对应的匿名密钥进行身份验证。
+    - **数据流**: 前端表单 → Supabase Edge Functions → PostgreSQL 数据库 → 返回响应
 
 3.  **通过 HyperBEAM 与 AO 的集成**:
     - `src/hooks/useAOClient.ts` 文件中定义了与 AO 交互的核心逻辑，其工作流清晰地展示了 Web2 前端如何与 Web3 后端协作（HTTP -> HyperBEAM -> AO -> APUS -> 原路返回）。
@@ -67,23 +76,50 @@
 5.  **对单一节点的依赖**:
     - `useAOClient.ts` 中的交互硬编码了一个特定的 `apusHyperbeamNodeUrl`。虽然 HyperBEAM 是一个去中心化协议，任何人都可以运行节点，但当前应用**依赖于这一个特定节点的可用性**。这类似于在以太坊应用中硬编码一个特定的 Infura RPC 地址，它是一个潜在的单点故障或瓶颈，但并非架构层面的中心化。
 
-6.  **核心内容依赖中心化服务**:
-    - 项目的核心内容（品牌和档案）完全依赖 Supabase 进行存储和管理。这与项目宣称的“基于 Arweave”的去中心化存储目标**严重不符**，是目前架构上最大的出入。
+6.  **核心内容依赖中心化服务 (Supabase vs. Arweave)**:
+    - **Supabase 依赖现状**: 项目的核心内容（品牌和档案数据）完全依赖 Supabase 的 PostgreSQL 数据库进行存储和管理，所有 CRUD 操作都通过 Supabase 的 Edge Functions 实现。
+    - **架构矛盾分析**:
+        - 项目 README.md 明确宣称基于 Arweave 的"不可变数字档案库"，但实际实现中却以 Supabase 作为主要数据存储
+        - Supabase 提供了便利的开发体验和丰富的功能，但这与去中心化、永久存储的项目初衷相悖
+        - 缺少数据迁移路径：从中心化 Supabase 到去中心化 Arweave 的数据迁移方案
+    - **潜在风险**:
+        - **单点故障**: 依赖单一的 Supabase 服务实例
+        - **数据所有权**: 用户数据存储在 Supabase 而非用户控制的区块链上
+        - **审查风险**: 中心化服务可能面临内容审查或服务中断
+        - **成本结构**: Supabase 的按使用量付费模式可能不适合长期的数字资产存储
+        - **技术债务**: 当前架构形成了技术栈割裂——前端使用 React，后端同时依赖中心化 Supabase 和去中心化 AO，存在根本性矛盾
 
 7.  **缺乏测试**:
     - 项目中没有包含任何单元测试或端到端测试代码。
 
 ## 4. 总结
 
-**Aeternum 项目目前处于一个功能原型的早期阶段，且代码实现上存在脱节与不一致。**
+**Aeternum 项目目前处于一个功能原型的早期阶段，存在技术栈割裂和架构矛盾的严重问题。**
 
-它拥有一个使用 React 和 `shadcn/ui` 构建的、非常完善和现代化的前端 UI。其 Web3 架构展示了通过 **HyperBEAM** 节点将 Web2 前端与 **AO** 后端及 **APUS** 去中心化计算网络连接起来的先进模式。开发者可能还使用了 AI 辅助工具进行开发。
+### 技术实现亮点
+- **现代化前端**: 使用 React + TypeScript + shadcn/ui 构建了完善的用户界面和交互体验
+- **Web3 技术集成**: 展示了通过 HyperBEAM 节点连接 Web2 前端与 AO 后端的先进架构模式
+- **Supabase 集成**: 实现了完整的后台管理功能，包括品牌和档案的 CRUD 操作、文件上传等
+- **AI 辅助开发**: 可能使用了 AI 编程工具生成部分代码，提高了开发效率
 
-然而，项目存在两套并行的、数据结构不一致的实现逻辑（React 应用 vs. 原生 JS 脚本），它们并未整合。其已实现的后端功能（AI 聊天代理）与 `README.md` 中宏大的“数字遗产档案库”构想存在较大差距。**更关键的是，项目虽然引入了 `@permaweb/aoconnect` 依赖，但在实际功能中却绕过了它，这强烈暗示了项目尚未完成技术选型的统一和代码的最终实现。**
+### 主要问题与矛盾
 
-项目的核心业务——创建、加密、订阅和管理品牌档案库的功能尚未实现，这一点从代码中多个 `TODO` 注释、未使用的 `Balances` 变量以及缺失的钱包连接逻辑中得到了直接印证。并且，项目当前的核心数据严重依赖 **Supabase** 这一中心化服务，而非 Arweave，这与项目初衷相悖。
+1. **技术栈割裂**:
+   - 项目同时维护两套并行的实现逻辑（React 应用 vs. 原生 JS 脚本），数据结构不一致
+   - Supabase 提供了便利的中心化解决方案，但与项目去中心化的初衷相悖
+   - AO 相关依赖（如 `@permaweb/aoconnect`）存在但未实际使用
 
-**结论**: 该项目有一个出色的“外壳”（UI/UX）和一个技术上很有趣的 Web3 集成模式，但其“内核”（核心业务逻辑和去中心化数据存储）仍有待开发，且现有代码库需要进行整合与规范。开发者在前端和 Web3 技术整合方面表现出很高的水平，但需要将重心转移到实现 `README.md` 中描述的核心业务功能上（例如，通过编写 AO Process 来实现 NFT 合约），并清理和统一当前脱节的代码。
+2. **架构矛盾**:
+   - README.md 宣称"基于 Arweave 的不可变数字档案库"，但核心数据存储在 Supabase
+   - 实现了完整的 Supabase 后台管理功能，却缺少对应的去中心化数据迁移方案
+   - AI 聊天代理功能与"数字遗产档案库"的核心业务逻辑存在较大偏差
+
+3. **功能缺失**:
+   - 核心 Web3 业务逻辑（如 NFT 访问密钥、加密/解密功能）尚未实现
+   - 钱包连接功能不完整，用户认证与授权系统缺失
+   - 存在多个 TODO 注释表明项目处于早期开发阶段
+
+**新的结论与行动计划**: 基于项目去中心化核心理念的重新审视，我们需要坚决执行零Supabase战略。项目的核心价值在于实现真正的去中心化数字档案库，而非中心化服务的包装。**立即行动计划**：制定从Supabase到纯AO/Arweave架构的迁移路线图，优先实现核心的NFT访问密钥和档案存储功能。
 
 ## 5. 相关参考与未来方向
 
@@ -100,21 +136,62 @@
     2.  该 Process 至少需要管理一个 `balances` 表来记录每个地址拥有的 NFT 数量，并包含一个 `transfer` handler 来处理所有权转移。
     3.  前端应用通过与这个 AO Process 交互，来实现密钥的发行、购买和验证。
 
+### 零Supabase战略：纯去中心化架构设计
+
+**核心原则**: 基于用户"尽量减少Supabase使用，最好完全不用"的明确要求，我们制定零Supabase战略。
+
+#### 当前Supabase使用情况评估
+- **功能依赖**: AdminPanel的完整CRUD操作、文件上传、用户认证
+- **数据量**: 品牌数据、档案元数据、图片资源（目前规模较小）
+- **技术债务**: 中心化依赖与去中心化目标的根本矛盾
+
+#### 实施路线图
+
+**Phase 1: 核心功能迁移 (1-2周)**:
+- 在AO上实现NFT访问密钥合约
+- 设计档案数据在Arweave上的存储格式
+- 实现基本的CRUD操作
+
+**Phase 2: 用户界面重构 (2-3周)**:
+- 重构AdminPanel以支持Arweave存储
+- 集成Arweave钱包连接
+- 实现去中心化文件上传
+
+**Phase 3: 数据迁移与测试 (1周)**:
+- 开发数据导出工具
+- 迁移现有数据到Arweave
+- 完整的功能和性能测试
+
+**Phase 4: Supabase完全移除 (1周)**:
+- 移除所有Supabase依赖
+- 清理相关代码和配置
+- 部署纯去中心化版本
+
 ### 参考工具与标准
 
-- **Warp Contracts SDK 与“遗产”标准**: Warp 最初是作为 SmartWeave 的性能优化层和工具集而崛起的。其推出的 **PSC (Profit Sharing Community) 代币标准**，在 SmartWeave 时代是事实上的社区标准。随着 AO 的推出，PSC 已被视为**“遗产标准 (Legacy Standard)”**。尽管如此，研究 PSC 的设计（特别是其利润分享 `vault` 和 `claim` 机制）对于在 AO 上设计新代币的经济模型仍有很高的参考价值。Warp 的主 SDK 现已全面支持 AO 开发。
+- **Warp Contracts SDK 与"遗产"标准**: Warp 最初是作为 SmartWeave 的性能优化层和工具集而崛起的。其推出的 **PSC (Profit Sharing Community) 代币标准**，在 SmartWeave 时代是事实上的社区标准。随着 AO 的推出，PSC 已被视为**"遗产标准 (Legacy Standard)"**。尽管如此，研究 PSC 的设计（特别是其利润分享 `vault` 和 `claim` 机制）对于在 AO 上设计新代币的经济模型仍有很高的参考价值。Warp 的主 SDK 现已全面支持 AO 开发。
     - **Warp 主 SDK 仓库**: [https://github.com/warp-contracts/warp](https://github.com/warp-contracts/warp)
 
 - **CommunityXYZ**: Arweave 上的一个社区管理平台，是原子资产和 Perma-NFT 的早期和重要实践者，其代码库是理解早期 Arweave dApp 设计的宝贵资料。
     - **GitHub 组织**: [https://github.com/CommunityXYZ](https://github.com/CommunityXYZ)
 
+- **Arweave生态最佳实践**:
+    - **Arweave Bundles**: ANS-104标准用于批量数据存储
+    - **Permaweb应用**: 学习Mirror.xyz, ArDrive等去中心化应用模式
+    - **官方文档**: [https://docs.arweave.org](https://docs.arweave.org)
+
+- **AO生态最佳实践**:
+    - **AO Process模板**: 标准代币合约、DAO治理等设计模式
+    - **Lua编程规范**: 错误处理、消息验证、安全性最佳实践
+    - **消息处理模式**: 异步处理、批量操作、状态管理模式
+
 ## 6. AO 网络兼容性分析：HyperBEAM vs. 遗留网络 (Legacy Network)
 
 ### Aeternum 项目的网络选择
 
-**结论先行：本项目明确使用了 AO 最新的、基于 G8 网关和 HyperBEAM 的网络架构。**
+**结论先行：本项目明确使用了 AO 最新的、基于 HyperBEAM 节点的网络架构。**
 
-这一点从 `src/hooks/useAOClient.ts` 的实现中可以得到直接证实。代码通过 `fetch` API 直接与一个名为 `apusHyperbeamNodeUrl` 的 HTTP 端点进行交互。这个端点就是一个 **HyperBEAM 节点**，它扮演了 AO 网络统一网关的角色。这种模式是当前 AO 生态推荐的最新实践，它将客户端与底层复杂的读（CU）/写（MU）单元解耦。
+这一点从 `src/hooks/useAOClient.ts` 的实现中可以得到直接证实。代码通过 `fetch` API 直接与一个名为 `apusHyperbeamNodeUrl` 的 HTTP 端点进行交互。这个端点就是一个 **HyperBEAM 节点**，它提供了统一的AO网络访问接口。这种模式是当前 AO 生态推荐的最新实践，它将客户端与底层复杂的读（CU）/写（MU）单元解耦，提供简化的开发体验。
 
 ### SDK 兼容性与开发者指南
 
@@ -161,3 +238,17 @@
     *   **拥抱最新标准**: 对于所有新项目，都应**优先选择在最新的 G8/HyperBEAM 网络上进行开发和部署**。这不仅简化了开发，也确保了更好的性能和面向未来的兼容性。
     *   **检查配置**: 在维护或调试一个 AO 项目时，应首先检查 `aoconnect` 的初始化配置，以确定其连接模式。
     *   **迁移是长久之计**: 如果必须与一个部署在遗留网络上的老旧 Process 交互，虽然可以通过配置 `MU_URL` 和 `CU_URL` 来实现，但长期来看，更稳妥的方案是将其迁移到新的网络架构上。
+
+### 纯AO/Arweave架构：技术实现指南
+
+**核心替代方案**:
+- **数据存储**: Arweave永久存储替代PostgreSQL，通过AO Process管理数据索引
+- **文件存储**: Arweave Bundles (ANS-104标准)替代Supabase Storage
+- **认证系统**: Arweave钱包连接替代Supabase Auth
+- **业务逻辑**: AO Process替代Edge Functions，支持NFT合约和CRUD操作
+
+**技术实现要点**:
+- 使用Lua编写AO Process，实现基于消息传递的业务逻辑
+- 采用Arweave Bundles进行批量数据存储和文件管理
+- 集成ArConnect等主流Arweave钱包实现身份验证
+- 利用AO的持久化存储特性实现去中心化权限控制
