@@ -45,6 +45,160 @@
     - **配置信息**: 项目使用 Supabase 项目 ID `uuyzyyoqzaqomsngggja` 和对应的匿名密钥进行身份验证。
     - **数据流**: 前端表单 → Supabase Edge Functions → PostgreSQL 数据库 → 返回响应
 
+    #### Supabase 数据模型 E-R 分析
+
+    **核心实体结构分析依据**:
+
+    **分析方法**: 通过以下代码分析得出实体结构
+
+    **1. 从 TypeScript 接口定义 (AdminPanel.tsx:13-29)**
+    ```typescript
+    interface Brand {
+      id: string;           // 主键字段
+      name: string;         // 品牌名称
+      description: string;  // 品牌描述
+      image: string;        // 图片URL
+      era: string;          // 时代分类
+    }
+
+    interface ArchiveItem {
+      id: string;           // 主键字段
+      title: string;        // 项目标题
+      brand: string;        // 品牌关联（字符串引用）
+      year: string;         // 年份
+      description: string;  // 项目描述
+      image: string;        // 图片URL
+      category: string;     // 分类
+    }
+    ```
+
+    **2. 从表单字段定义 (AdminPanel.tsx:39-53)**
+    ```typescript
+    // 品牌表单字段 - 验证了 Brand 实体字段
+    const [brandForm, setBrandForm] = useState({
+      name: '',         // ✅ name 字段
+      description: '',  // ✅ description 字段
+      image: '',        // ✅ image 字段
+      era: ''           // ✅ era 字段
+    });
+
+    // 档案项目表单字段 - 验证了 ArchiveItem 实体字段
+    const [itemForm, setItemForm] = useState({
+      title: '',        // ✅ title 字段
+      brand: '',        // ✅ brand 字段
+      year: '',         // ✅ year 字段
+      description: '',  // ✅ description 字段
+      image: '',        // ✅ image 字段
+      category: ''      // ✅ category 字段
+    });
+    ```
+
+    **3. 从枚举值定义 (AdminPanel.tsx:55-56)**
+    ```typescript
+    // 验证了枚举字段的取值范围
+    const categories = ['Dresses', 'Suits', 'Collections', 'Outerwear', 'Accessories'];
+    const eras = ['Vintage', 'Classic', 'Modern', 'Contemporary'];
+    ```
+
+    **4. 从 Mock 数据结构 (App.tsx:13-42)**
+    ```typescript
+    // 验证了实际数据格式和字段类型
+    export const mockBrands = [
+      {
+        id: 'chanel',           // string 类型 ID
+        name: 'Chanel',         // string 品牌名
+        description: '...',     // string 描述
+        image: 'https://...',   // URL 字符串
+        era: 'Modern'           // 枚举值
+      }
+    ];
+    ```
+
+    **推导出的核心实体结构**:
+
+    **1. Brand (品牌实体)**
+    ```
+    Brand {
+      id: string (Primary Key)           // 从接口和mock数据验证
+      name: string                       // 必填字段，从表单验证
+      description: string                // 可选字段，从接口定义
+      image: string (URL)                // 图片URL，从接口和表单验证
+      era: string (枚举值)               // 枚举: Vintage, Classic, Modern, Contemporary
+    }
+    ```
+
+    **2. ArchiveItem (档案项目实体)**
+    ```
+    ArchiveItem {
+      id: string (Primary Key)           // 从接口定义验证
+      title: string                      // 必填字段，从表单验证
+      brand: string (引用字段)           // 引用 Brand.name，不是外键
+      year: string                       // 可选年份字段
+      description: string                // 项目描述
+      image: string (URL)                // 图片URL
+      category: string (枚举值)          // 枚举: Dresses, Suits, Collections, Outerwear, Accessories
+    }
+    ```
+
+    **3. FileStorage (文件存储)**
+    ```
+    FileUpload {
+      file: File (二进制数据)
+      metadata: {
+        filename: string
+        contentType: string
+        size: number
+      }
+    }
+    ```
+
+    **实体关系 (更准确的描述)**:
+
+    **实际关系分析**:
+    ```
+    Brand (1:N) ─── ArchiveItem
+         │                    │
+         └── image: string    └── image: string
+             (Supabase Storage URL)    (Supabase Storage URL)
+    ```
+
+    **关键关系特征**:
+    - **弱引用关系**: ArchiveItem.brand 是字符串字段，引用 Brand.name (非强制外键)
+    - **独立文件存储**: Brand 和 ArchiveItem 的 image 字段都是独立的 URL 字符串
+    - **无级联约束**: 删除 Brand 不会影响 ArchiveItem 的存在性
+    - **字符串匹配**: ArchiveItem 通过字符串匹配找到对应的 Brand
+
+    **实际数据流示例**:
+    ```
+    ArchiveItem.brand = "Chanel" → 匹配 Brand.name = "Chanel"
+    Brand.image = "https://supabase.co/storage/..." (实际URL)
+    ArchiveItem.image = "https://supabase.co/storage/..." (实际URL)
+    ```
+
+    **API 接口层**:
+    ```
+    RESTful Endpoints:
+    POST   /brands              # 创建品牌
+    GET    /brands              # 获取所有品牌
+    GET    /brands/{id}         # 获取单个品牌
+    PUT    /brands/{id}         # 更新品牌
+    DELETE /brands/{id}         # 删除品牌
+
+    POST   /archive-items       # 创建档案项目
+    GET    /archive-items       # 获取所有档案项目
+    GET    /archive-items/{id}  # 获取单个档案项目
+    PUT    /archive-items/{id}  # 更新档案项目
+    DELETE /archive-items/{id}  # 删除档案项目
+
+    POST   /upload-image        # 文件上传
+    ```
+
+    **数据一致性策略**:
+    - **双重数据源**: Supabase API 优先 + Mock 数据降级
+    - **弱关联设计**: ArchiveItem.brand 是字符串引用而非数据库外键
+    - **枚举约束**: Brand.era 和 ArchiveItem.category 使用预定义值
+    - **认证机制**: Supabase Anonymous Key + Bearer Token
+
 3.  **通过 HyperBEAM 与 AO 的集成**:
     - `src/hooks/useAOClient.ts` 文件中定义了与 AO 交互的核心逻辑，其工作流清晰地展示了 Web2 前端如何与 Web3 后端协作（HTTP -> HyperBEAM -> AO -> APUS -> 原路返回）。
 
