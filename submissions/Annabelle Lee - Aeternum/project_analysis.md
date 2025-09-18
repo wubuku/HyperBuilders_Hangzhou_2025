@@ -298,6 +298,8 @@
 - **功能依赖**: AdminPanel的完整CRUD操作、文件上传、用户认证
 - **数据量**: 品牌数据、档案元数据、图片资源（目前规模较小）
 - **技术债务**: 中心化依赖与去中心化目标的根本矛盾
+- **现有优势**: 完整的错误处理、状态管理和UI交互逻辑已实现
+- **兼容性**: TypeScript接口定义和组件结构与Arweave方案高度兼容
 
 #### 实施路线图
 
@@ -320,6 +322,255 @@
 - 移除所有Supabase依赖
 - 清理相关代码和配置
 - 部署纯去中心化版本
+
+#### 文件上传去中心化替代方案调研
+
+**基于2025年最新技术调研，以下是前端实现 Arweave 文件上传的完整技术方案：**
+
+##### 1. 免费服务方案 (适合原型和小文件)
+
+**Developer DAO Free Uploader**:
+- **文件大小限制**: 100KiB 以下
+- **技术栈**: `@ardrive/turbo-sdk`
+- **特点**: 完全免费，支持前端直接上传
+- **实现示例**:
+```typescript
+// 前端实现示例 (React/TypeScript)
+import { TurboFactory } from "@ardrive/turbo-sdk/web";
+import Arweave from 'arweave';
+
+const uploadToArweaveFree = async (file: File) => {
+  if (file.size > 102400) { // 100KiB = 102400 bytes
+    throw new Error('文件超过100KiB限制');
+  }
+
+  // 使用随机生成的钱包 (仅用于演示)
+  const arweave = Arweave.init({
+    host: 'arweave.net',
+    port: 443,
+    protocol: 'https'
+  });
+
+  const turbo = TurboFactory.authenticated({
+    privateKey: await arweave.crypto.generateJWK()
+  });
+
+  const result = await turbo.uploadFile({
+    fileStreamFactory: () => file.stream(),
+    fileSizeFactory: () => file.size,
+  });
+
+  return `https://arweave.net/${result.id}`;
+};
+```
+
+##### 2. 付费服务方案 (支持大文件)
+
+**Bundlr/Irys Network**:
+- **特点**: 支持大文件，支持多种代币支付
+- **费用**: 更便宜的打包上传，批量处理
+- **前端实现**:
+```typescript
+// 使用 Bundlr SDK
+import { WebBundlr } from '@bundlr-network/client';
+
+const uploadWithBundlr = async (file: File) => {
+  const bundlr = new WebBundlr("https://node2.bundlr.network", "matic", window.ethereum);
+
+  await bundlr.ready();
+
+  const tags = [
+    { name: "Content-Type", value: file.type },
+    { name: "Application", value: "Aeternum-Archive" }
+  ];
+
+  const response = await bundlr.upload(file, { tags });
+  return `https://arweave.net/${response.id}`;
+};
+```
+
+##### 3. 自建方案 (完全控制)
+
+**Arweave 官方 SDK + 钱包集成**:
+- **技术栈**: `arweave-js` + `ArConnect` 钱包
+- **成本**: 需要 AR 代币支付存储费用
+- **用户体验**: 需要用户持有 AR 代币和钱包
+
+```typescript
+// 完整的前端上传实现
+import Arweave from 'arweave';
+import { ArConnectSigner } from 'arbundles/web';
+
+const uploadWithArweave = async (file: File) => {
+  // 1. 初始化 Arweave 实例
+  const arweave = Arweave.init({
+    host: 'arweave.net',
+    port: 443,
+    protocol: 'https'
+  });
+
+  // 2. 读取文件数据
+  const fileData = await file.arrayBuffer();
+
+  // 3. 创建交易
+  const transaction = await arweave.createTransaction({
+    data: fileData
+  });
+
+  // 4. 添加元数据标签
+  transaction.addTag('Content-Type', file.type);
+  transaction.addTag('App-Name', 'Aeternum');
+  transaction.addTag('File-Name', file.name);
+
+  // 5. 使用 ArConnect 钱包签名
+  await arweave.transactions.sign(transaction, new ArConnectSigner(window.arweaveWallet));
+
+  // 6. 提交交易到网络
+  const response = await arweave.transactions.post(transaction);
+
+  if (response.status === 200) {
+    return `https://arweave.net/${transaction.id}`;
+  } else {
+    throw new Error('上传失败');
+  }
+};
+```
+
+##### 4. 第三方服务集成方案
+
+**4EVERLAND 或 ArDrive**:
+- **特点**: 提供 API 接口，简化集成
+- **优势**: 无需用户管理 AR 代币
+- **限制**: 可能有存储额度限制
+
+##### 5. 混合方案 (推荐)
+
+**Turbo SDK + 备用方案**:
+```typescript
+// 推荐的混合实现方案
+const uploadFileHybrid = async (file: File) => {
+  try {
+    // 方案1: 尝试免费上传 (小文件)
+    if (file.size <= 100 * 1024) { // 100KB
+      return await uploadWithTurbo(file);
+    }
+
+    // 方案2: 使用 Bundlr/Irys (中等文件)
+    if (file.size <= 10 * 1024 * 1024) { // 10MB
+      return await uploadWithBundlr(file);
+    }
+
+    // 方案3: 直接 Arweave (大文件)
+    return await uploadWithArweave(file);
+
+  } catch (error) {
+    // 降级处理
+    console.error('上传失败:', error);
+    throw error;
+  }
+};
+```
+
+##### 6. 技术栈选择建议
+
+| 方案                | 文件大小   | 成本  | 复杂度 | 用户体验 | 推荐指数        |
+| ------------------- | ---------- | ----- | ------ | -------- | --------------- |
+| Developer DAO Turbo | ≤100KiB    | 免费  | 低     | 良好     | ⭐⭐⭐ (原型)      |
+| Bundlr/Irys         | ≤100MB+    | 低    | 中     | 优秀     | ⭐⭐⭐⭐⭐ (生产)    |
+| 官方 Arweave SDK    | 无限制     | 中等  | 高     | 需要钱包 | ⭐⭐⭐⭐ (完整控制) |
+| 第三方服务          | 视服务而定 | 低-高 | 低     | 良好     | ⭐⭐⭐ (快速集成)  |
+
+##### 7. 实施建议
+
+**Phase 2 具体实施计划** (基于现有代码结构优化):
+
+1. **🔄 重构现有上传和数据获取逻辑**:
+   - 修改 `AdminPanel.tsx` 中的 `uploadImage` 函数
+   - 修改 `App.tsx` 中的 `fetchData` 函数（数据获取逻辑）
+   - 保持相同的接口，但内部实现改为 Arweave 上传和存储
+   - 兼容现有的 `uploading` 状态管理和数据加载机制
+
+2. **🔗 集成 ArConnect 钱包**:
+   - 利用现有的 `arweave-wallet-kit` 和 `WalletContext.tsx`
+   - 扩展 `useWallet` hook 以支持文件上传签名
+   - 复用现有的钱包连接状态管理
+
+3. **📁 实现多层上传策略**:
+   ```typescript
+   // 基于现有 AdminPanel.tsx 结构实现
+   const uploadImage = async (file: File): Promise<string | null> => {
+     setUploading(true);
+     try {
+       // 小文件: 免费上传
+       if (file.size <= 100 * 1024) {
+         return await uploadWithTurbo(file);
+       }
+       // 中等文件: Bundlr/Irys
+       if (file.size <= 10 * 1024 * 1024) {
+         return await uploadWithBundlr(file);
+       }
+       // 大文件: 直接 Arweave
+       return await uploadWithArweave(file);
+     } catch (error) {
+       console.error('Upload failed:', error);
+       return null;
+     } finally {
+       setUploading(false); // 保持现有状态管理
+     }
+   };
+   ```
+
+4. **📊 添加上传进度**: 利用现有的状态管理机制
+5. **🛡️ 错误处理**: 网络异常、余额不足等场景
+6. **🏷️ 元数据管理**: 文件标签、分类信息存储
+
+**兼容性保证**:
+- ✅ 保持现有的 TypeScript 接口定义 (`Brand`, `ArchiveItem`)
+- ✅ 复用现有的错误处理和状态管理逻辑
+- ✅ 维持相同的 UI 交互模式和用户体验
+- ✅ 兼容现有的钱包权限配置 (`ACCESS_ADDRESS`, `SIGN_TRANSACTION`, `DISPATCH`)
+- ✅ 支持现有的浏览器环境和构建配置
+
+**风险 mitigation**:
+- **依赖冲突**: 新增的 Arweave SDK 与现有 `@permaweb/aoconnect` 兼容
+- **构建问题**: Vite 配置支持 ES modules 和现代浏览器目标
+- **权限问题**: 现有钱包权限已包含文件上传所需的签名权限
+- **降级策略**: 当 Arweave 上传失败时，可降级到本地存储或提示用户
+
+**实施验证清单**:
+- ✅ 现有错误处理机制完整 (`try/catch`, `setUploading` 状态)
+- ✅ 钱包集成已配置 (`ArweaveWalletKit`, `ArConnect` 支持)
+- ✅ UI 组件兼容 (文件输入、上传状态显示)
+- ✅ 数据接口兼容 (TypeScript 类型定义与 Arweave 存储格式匹配)
+- ✅ 构建环境兼容 (Vite + TypeScript + 现代浏览器支持)
+
+**技术依赖更新**:
+```json
+// package.json 新增依赖
+{
+  "dependencies": {
+    "arweave": "^1.14.4",
+    "@ardrive/turbo-sdk": "^1.0.0",
+    "@bundlr-network/client": "^0.11.0",
+    "arbundles": "^0.11.0"
+  },
+  "devDependencies": {
+    "@types/arweave": "^1.10.1"
+  }
+}
+
+// 注意：项目已有的依赖兼容性
+✅ "@permaweb/aoconnect": "^0.0.90" (已存在，可配合使用)
+✅ "arweave-wallet-kit": "^1.1.0" (已存在，支持 ArConnect 钱包)
+```
+
+**安全性考虑**:
+- 文件内容验证和病毒扫描
+- 用户隐私保护
+- 上传日志记录
+- 异常情况处理
+
+这个调研结果为项目的去中心化文件上传功能提供了完整的实施路径，从免费原型到生产级解决方案都有相应的技术方案。
 
 ### 参考工具与标准
 
