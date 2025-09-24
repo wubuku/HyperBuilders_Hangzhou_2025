@@ -246,7 +246,187 @@
 7.  **缺乏测试**:
     - 项目中没有包含任何单元测试或端到端测试代码。
 
-## 4. 总结
+## 7. 本地开发环境设置
+
+### 环境要求
+
+**系统要求**:
+- **Node.js**: ≥18.0.0 (推荐使用 LTS 版本)
+- **包管理器**: pnpm (推荐) 或 npm/yarn
+- **操作系统**: macOS, Linux, 或 Windows (支持 WSL)
+
+**推荐开发环境**:
+```bash
+# 检查 Node.js 版本
+node --version  # 应显示 ≥18.0.0
+npm --version   # 应显示 ≥8.0.0
+
+# 全局安装 pnpm (推荐)
+npm install -g pnpm
+```
+
+### 快速启动指南
+
+#### 1. 克隆与依赖安装
+```bash
+# 进入项目目录 (如果尚未进入)
+cd "/path/to/Aeternum"
+
+# 使用 pnpm 安装依赖 (推荐)
+pnpm install
+
+# 或者使用 npm
+npm install
+```
+
+#### 2. 启动开发服务器
+```bash
+# 使用 pnpm 启动 (推荐)
+pnpm dev
+
+# 或者使用 npm
+npm run dev
+```
+
+**启动成功标志**:
+- 控制台显示: `VITE v6.3.5 ready in XXX ms`
+- 本地访问地址: `http://localhost:3000/`
+- 浏览器返回 HTTP 200 状态码
+
+#### 3. 验证运行状态
+
+服务器启动后，访问 `http://localhost:3000` 应能看到完整的应用界面，包括：
+
+✅ **可用的功能**:
+- 现代化 React 前端界面 (shadcn/ui 组件)
+- Arweave 钱包连接按钮
+- 品牌展示页面
+- 档案浏览页面
+- 后台管理面板 (可通过界面切换)
+
+⚠️ **需要额外配置的功能**:
+- Supabase 数据库连接 (需要 API 密钥)
+- AO 网络完整功能 (需要真实 Process ID)
+- 图片上传功能 (依赖 Supabase Storage)
+
+### 项目结构与开发命令
+
+#### 核心文件结构
+```
+/
+├── src/
+│   ├── components/     # UI 组件 (shadcn/ui)
+│   ├── hooks/         # React Hooks (AO 客户端, 钱包)
+│   ├── config/        # 配置文件
+│   └── main.tsx       # 应用入口
+├── ao/
+│   └── agent.lua      # AO Process 合约
+├── package.json       # 项目配置与依赖
+└── vite.config.ts     # Vite 构建配置
+```
+
+#### 常用开发命令
+```bash
+# 开发模式 (带热重载)
+pnpm dev
+
+# 生产构建
+pnpm build
+
+# 预览生产构建
+pnpm preview
+
+# 安装新依赖
+pnpm add <package-name>
+
+# 安装开发依赖
+pnpm add -D <package-name>
+```
+
+### 配置说明
+
+#### AO 网络配置 (`src/config/index.ts`)
+```typescript
+export const config = {
+  // AO Process ID (需要替换为真实值)
+  aoProcessId: 'TDmujfmwkQu2TzmAyV_V_uqDGt-N-dYdPYUSJrGN3RM', // TODO
+
+  // HyperBEAM 节点 (当前使用测试节点)
+  apusHyperbeamNodeUrl: 'http://72.46.85.207:8734',
+
+  // 钱包权限配置
+  walletPermissions: ['ACCESS_ADDRESS', 'SIGN_TRANSACTION', 'DISPATCH'],
+  ensurePermissions: true,
+}
+```
+
+#### 钱包集成配置
+项目已预配置了 Arweave Wallet Kit，支持以下钱包:
+- ArConnect (推荐)
+- 其他兼容的 Arweave 钱包
+
+### 故障排除
+
+#### 常见问题
+
+**问题 1: 依赖安装失败**
+```bash
+# 清除缓存后重试
+pnpm store prune
+pnpm install
+
+# 或使用 npm
+npm cache clean --force
+npm install
+```
+
+**问题 2: 端口 3000 被占用**
+```bash
+# 使用不同端口
+pnpm dev --port 3001
+
+# 或修改 vite.config.ts 中的端口配置
+server: {
+  port: 3001, // 改为其他端口
+}
+```
+
+**问题 3: AO 网络连接失败**
+- 检查网络连接
+- 确认 HyperBEAM 节点是否可用
+- 查看浏览器控制台错误信息
+
+**问题 4: 钱包连接失败**
+- 确保安装了兼容的 Arweave 钱包扩展
+- 检查钱包权限配置
+- 确认浏览器支持 Web3 环境
+
+### 开发建议
+
+#### 立即可开发的功能
+1. **UI/UX 改进**: 优化界面设计和用户体验
+2. **组件重构**: 改进现有组件的性能和可维护性
+3. **本地状态管理**: 优化 React 状态管理逻辑
+
+#### 需要额外配置的功能
+1. **Supabase 集成**: 设置数据库和文件存储
+2. **AO Process 部署**: 部署自定义的 AO 合约
+3. **Arweave 存储**: 实现去中心化文件上传
+
+#### 推荐开发工作流
+1. **本地开发**: 使用 `pnpm dev` 进行日常开发
+2. **功能测试**: 手动测试各个页面和组件
+3. **代码检查**: 运行构建确保无错误
+4. **版本控制**: 及时提交代码变更
+
+### 性能优化建议
+
+1. **构建优化**: Vite 已配置 ESNext 目标，确保现代浏览器兼容性
+2. **组件懒加载**: 可考虑对大型组件实现代码分割
+3. **图片优化**: 实现响应式图片和 WebP 格式支持
+4. **缓存策略**: 配置适当的浏览器缓存和 CDN
+
+## 8. 总结
 
 **Aeternum 项目目前处于一个功能原型的早期阶段，存在技术栈割裂和架构矛盾的严重问题。**
 
@@ -275,7 +455,7 @@
 
 **新的结论与行动计划**: 基于项目去中心化核心理念的重新审视，我们需要坚决执行零Supabase战略。项目的核心价值在于实现真正的去中心化数字档案库，而非中心化服务的包装。**立即行动计划**：制定从Supabase到纯AO/Arweave架构的迁移路线图，优先实现核心的NFT访问密钥和档案存储功能。
 
-## 5. 相关参考与未来方向
+## 9. 相关参考与未来方向
 
 ### 在 AO 上实现 NFT 的最佳实践
 
@@ -590,7 +770,7 @@ const uploadFileHybrid = async (file: File) => {
     - **Lua编程规范**: 错误处理、消息验证、安全性最佳实践
     - **消息处理模式**: 异步处理、批量操作、状态管理模式
 
-## 6. AO 网络兼容性分析：HyperBEAM vs. 遗留网络 (Legacy Network)
+## 10. AO 网络兼容性分析：HyperBEAM vs. 遗留网络 (Legacy Network)
 
 ### Aeternum 项目的网络选择
 
