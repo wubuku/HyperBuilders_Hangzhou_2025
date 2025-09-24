@@ -246,7 +246,7 @@
 7.  **缺乏测试**:
     - 项目中没有包含任何单元测试或端到端测试代码。
 
-## 7. 本地开发环境设置
+## 4. 本地开发环境设置
 
 ### 环境要求
 
@@ -267,7 +267,7 @@ npm install -g pnpm
 
 ### 快速启动指南
 
-#### 1. 克隆与依赖安装
+#### 4.1 克隆与依赖安装
 ```bash
 # 进入项目目录 (如果尚未进入)
 cd "/path/to/Aeternum"
@@ -279,7 +279,7 @@ pnpm install
 npm install
 ```
 
-#### 2. 启动开发服务器
+#### 4.2 启动开发服务器
 ```bash
 # 使用 pnpm 启动 (推荐)
 pnpm dev
@@ -293,7 +293,7 @@ npm run dev
 - 本地访问地址: `http://localhost:3000/`
 - 浏览器返回 HTTP 200 状态码
 
-#### 3. 验证运行状态
+#### 4.3 验证运行状态
 
 服务器启动后，访问 `http://localhost:3000` 应能看到完整的应用界面，包括：
 
@@ -426,7 +426,7 @@ server: {
 3. **图片优化**: 实现响应式图片和 WebP 格式支持
 4. **缓存策略**: 配置适当的浏览器缓存和 CDN
 
-## 8. 总结
+## 5. 总结
 
 **Aeternum 项目目前处于一个功能原型的早期阶段，存在技术栈割裂和架构矛盾的严重问题。**
 
@@ -455,7 +455,7 @@ server: {
 
 **新的结论与行动计划**: 基于项目去中心化核心理念的重新审视，我们需要坚决执行零Supabase战略。项目的核心价值在于实现真正的去中心化数字档案库，而非中心化服务的包装。**立即行动计划**：制定从Supabase到纯AO/Arweave架构的迁移路线图，优先实现核心的NFT访问密钥和档案存储功能。
 
-## 9. 相关参考与未来方向
+## 6. 相关参考与未来方向
 
 ### 在 AO 上实现 NFT 的最佳实践
 
@@ -507,7 +507,7 @@ server: {
 
 **基于2025年最新技术调研，以下是前端实现 Arweave 文件上传的完整技术方案：**
 
-##### 1. 免费服务方案 (适合原型和小文件)
+##### 6.1 免费服务方案 (适合原型和小文件)
 
 **Developer DAO Free Uploader**:
 - **文件大小限制**: 100KiB 以下
@@ -544,7 +544,7 @@ const uploadToArweaveFree = async (file: File) => {
 };
 ```
 
-##### 2. 付费服务方案 (支持大文件)
+##### 6.2 付费服务方案 (支持大文件)
 
 **Bundlr/Irys Network**:
 - **特点**: 支持大文件，支持多种代币支付
@@ -569,7 +569,7 @@ const uploadWithBundlr = async (file: File) => {
 };
 ```
 
-##### 3. 自建方案 (完全控制)
+##### 6.3 自建方案 (完全控制)
 
 **Arweave 官方 SDK + 钱包集成**:
 - **技术栈**: `arweave-js` + `ArConnect` 钱包
@@ -616,14 +616,14 @@ const uploadWithArweave = async (file: File) => {
 };
 ```
 
-##### 4. 第三方服务集成方案
+##### 6.4 第三方服务集成方案
 
 **4EVERLAND 或 ArDrive**:
 - **特点**: 提供 API 接口，简化集成
 - **优势**: 无需用户管理 AR 代币
 - **限制**: 可能有存储额度限制
 
-##### 5. 混合方案 (推荐)
+##### 6.5 混合方案 (推荐)
 
 **Turbo SDK + 备用方案**:
 ```typescript
@@ -651,7 +651,7 @@ const uploadFileHybrid = async (file: File) => {
 };
 ```
 
-##### 6. 技术栈选择建议
+##### 6.6 技术栈选择建议
 
 | 方案                | 文件大小   | 成本  | 复杂度 | 用户体验 | 推荐指数        |
 | ------------------- | ---------- | ----- | ------ | -------- | --------------- |
@@ -660,7 +660,7 @@ const uploadFileHybrid = async (file: File) => {
 | 官方 Arweave SDK    | 无限制     | 中等  | 高     | 需要钱包 | ⭐⭐⭐⭐ (完整控制) |
 | 第三方服务          | 视服务而定 | 低-高 | 低     | 良好     | ⭐⭐⭐ (快速集成)  |
 
-##### 7. 实施建议
+##### 6.7 实施建议
 
 **Phase 2 具体实施计划** (基于现有代码结构优化):
 
@@ -770,7 +770,1043 @@ const uploadFileHybrid = async (file: File) => {
     - **Lua编程规范**: 错误处理、消息验证、安全性最佳实践
     - **消息处理模式**: 异步处理、批量操作、状态管理模式
 
-## 10. AO 网络兼容性分析：HyperBEAM vs. 遗留网络 (Legacy Network)
+## 7. 用户自定义 NFT 合约部署系统：技术架构与实现
+
+### 7.1 需求背景与技术挑战
+
+**核心需求**：支持终端用户（奢侈品牌、设计师、艺术家）独立部署自己的NFT合约，每个NFT系列（Collection）对应一个独立的AO进程，实现真正的"去中心化数字档案库"。
+
+**技术挑战**：
+1. **动态合约生成**：根据用户输入参数动态生成Lua合约代码
+2. **多租户架构**：每个用户管理自己的独立NFT进程
+3. **权限隔离**：确保用户只能访问和控制自己的合约
+4. **代码安全**：防止恶意代码注入和合约漏洞
+5. **用户体验**：简化部署流程，降低技术门槛
+
+### 7.2 系统架构设计
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   前端界面      │───▶│ 合约生成引擎     │───▶│  AO 进程部署    │
+│  (参数输入)     │    │  (模板 + 参数)   │    │  (aoconnect)     │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   用户钱包      │    │  Lua 合约代码    │    │  Arweave 存储   │
+│  (ArConnect)    │    │  (动态生成)      │    │  (永久存储)     │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+```
+
+### 7.3 NFT 合约模板系统
+
+#### 7.3.1 基础 NFT 合约模板
+
+```lua
+-- src/templates/nft-contract-template.lua
+-- 用户自定义 NFT 合约模板
+
+-- 动态参数注入点
+-- {{CONTRACT_NAME}} - 合约名称
+-- {{COLLECTION_NAME}} - NFT系列名称
+-- {{MAX_SUPPLY}} - 最大供应量
+-- {{MINT_PRICE}} - 铸造价格 (AO tokens)
+-- {{ROYALTY_PERCENTAGE}} - 版税百分比
+-- {{CREATOR_ADDRESS}} - 创建者地址
+-- {{METADATA_REQUIREMENTS}} - 元数据要求
+-- {{CUSTOM_FEATURES}} - 自定义功能
+
+local json = require("json")
+
+-- 合约状态
+ContractState = ContractState or {
+    name = "{{CONTRACT_NAME}}",
+    collection = "{{COLLECTION_NAME}}",
+    maxSupply = {{MAX_SUPPLY}},
+    mintPrice = "{{MINT_PRICE}}",
+    royaltyPercentage = {{ROYALTY_PERCENTAGE}},
+    creator = "{{CREATOR_ADDRESS}}",
+    totalSupply = 0,
+    tokens = {},  -- tokenId -> metadata
+    balances = {}, -- address -> balance
+    owners = {},  -- tokenId -> owner
+    tokenMetadata = {}, -- tokenId -> metadata
+    paused = false,
+    whitelist = {}, -- 预售白名单
+    {{CUSTOM_FEATURES}}
+}
+
+-- 验证铸造权限
+local function validateMintPermissions(msg, tokenId)
+    if ContractState.paused then
+        return false, "Contract is paused"
+    end
+
+    if ContractState.totalSupply >= ContractState.maxSupply then
+        return false, "Max supply reached"
+    end
+
+    -- 检查支付
+    if not msg.Quantity or msg.Quantity ~= ContractState.mintPrice then
+        return false, "Incorrect payment amount"
+    end
+
+    -- 白名单检查（如果启用）
+    if ContractState.whitelistEnabled and not ContractState.whitelist[msg.From] then
+        return false, "Not whitelisted"
+    end
+
+    return true, ""
+end
+
+-- 铸造 NFT Handler
+Handlers.add(
+    "MintNFT",
+    Handlers.utils.hasMatchingTag("Action", "Mint"),
+    function(msg)
+        local tokenId = tostring(ContractState.totalSupply + 1)
+
+        -- 验证权限
+        local valid, errorMsg = validateMintPermissions(msg, tokenId)
+        if not valid then
+            ao.send({
+                Target = msg.From,
+                Action = "MintError",
+                Error = errorMsg
+            })
+            return
+        end
+
+        -- 创建 token
+        ContractState.tokens[tokenId] = {
+            id = tokenId,
+            metadata = msg.Metadata or {},
+            mintedAt = os.time(),
+            minter = msg.From
+        }
+
+        ContractState.balances[msg.From] = (ContractState.balances[msg.From] or 0) + 1
+        ContractState.owners[tokenId] = msg.From
+        ContractState.totalSupply = ContractState.totalSupply + 1
+
+        -- 触发版税分配（如果适用）
+        if ContractState.royaltyPercentage > 0 then
+            local royaltyAmount = math.floor(tonumber(msg.Quantity) * ContractState.royaltyPercentage / 100)
+            if royaltyAmount > 0 then
+                -- 这里可以实现版税分配逻辑
+            end
+        end
+
+        -- 发送成功响应
+        ao.send({
+            Target = msg.From,
+            Action = "MintSuccess",
+            TokenId = tokenId,
+            Metadata = ContractState.tokens[tokenId]
+        })
+
+        -- 持久化状态
+        Send({
+            device = 'patch@1.0',
+            cache = {
+                contractState = ContractState
+            }
+        })
+    end
+)
+
+-- 转移 NFT Handler
+Handlers.add(
+    "TransferNFT",
+    Handlers.utils.hasMatchingTag("Action", "Transfer"),
+    function(msg)
+        local tokenId = msg.TokenId
+        local to = msg.To
+
+        if not ContractState.owners[tokenId] then
+            ao.send({
+                Target = msg.From,
+                Action = "TransferError",
+                Error = "Token does not exist"
+            })
+            return
+        end
+
+        if ContractState.owners[tokenId] ~= msg.From then
+            ao.send({
+                Target = msg.From,
+                Action = "TransferError",
+                Error = "Not the owner"
+            })
+            return
+        end
+
+        -- 执行转移
+        ContractState.owners[tokenId] = to
+        ContractState.balances[msg.From] = (ContractState.balances[msg.From] or 0) - 1
+        ContractState.balances[to] = (ContractState.balances[to] or 0) + 1
+
+        ao.send({
+            Target = msg.From,
+            Action = "TransferSuccess",
+            TokenId = tokenId,
+            To = to
+        })
+
+        -- 持久化状态
+        Send({
+            device = 'patch@1.0',
+            cache = {
+                contractState = ContractState
+            }
+        })
+    end
+)
+
+-- 查询 Handler
+Handlers.add(
+    "GetTokenInfo",
+    Handlers.utils.hasMatchingTag("Action", "GetToken"),
+    function(msg)
+        local tokenId = msg.TokenId
+        if ContractState.tokens[tokenId] then
+            msg.reply({
+                Data = json.encode(ContractState.tokens[tokenId])
+            })
+        else
+            msg.reply({
+                Data = json.encode({error = "Token not found"})
+            })
+        end
+    end
+)
+
+-- 管理功能 Handler (仅限合约创建者)
+Handlers.add(
+    "AdminAction",
+    Handlers.utils.hasMatchingTag("Action", "Admin"),
+    function(msg)
+        if msg.From ~= ContractState.creator then
+            ao.send({
+                Target = msg.From,
+                Action = "AdminError",
+                Error = "Unauthorized"
+            })
+            return
+        end
+
+        if msg.SubAction == "Pause" then
+            ContractState.paused = true
+        elseif msg.SubAction == "Unpause" then
+            ContractState.paused = false
+        elseif msg.SubAction == "SetWhitelist" then
+            ContractState.whitelist = json.decode(msg.Whitelist or "{}")
+            ContractState.whitelistEnabled = msg.Enabled == "true"
+        end
+
+        -- 持久化状态
+        Send({
+            device = 'patch@1.0',
+            cache = {
+                contractState = ContractState
+            }
+        })
+    end
+)
+```
+
+#### 7.3.2 合约模板引擎实现
+
+```typescript
+// src/services/NFTContractGenerator.ts
+export interface NFTContractParams {
+  contractName: string;
+  collectionName: string;
+  maxSupply: number;
+  mintPrice: string;
+  royaltyPercentage: number;
+  creatorAddress: string;
+  description?: string;
+  features?: {
+    whitelist?: boolean;
+    reveal?: boolean;
+    burnable?: boolean;
+    pausable?: boolean;
+    royalties?: boolean;
+  };
+  customCode?: string;
+}
+
+export class NFTContractGenerator {
+  private template: string;
+
+  constructor(templatePath: string) {
+    // 加载合约模板
+    this.template = this.loadTemplate(templatePath);
+  }
+
+  private async loadTemplate(path: string): Promise<string> {
+    const response = await fetch(path);
+    return response.text();
+  }
+
+  public async generateContract(params: NFTContractParams): Promise<string> {
+    // 验证参数
+    this.validateParams(params);
+
+    // 准备模板变量
+    const templateVars = {
+      CONTRACT_NAME: params.contractName,
+      COLLECTION_NAME: params.collectionName,
+      MAX_SUPPLY: params.maxSupply,
+      MINT_PRICE: params.mintPrice,
+      ROYALTY_PERCENTAGE: params.royaltyPercentage,
+      CREATOR_ADDRESS: params.creatorAddress,
+      METADATA_REQUIREMENTS: this.generateMetadataRequirements(params),
+      CUSTOM_FEATURES: this.generateCustomFeatures(params)
+    };
+
+    // 替换模板变量
+    let contractCode = this.template;
+    for (const [key, value] of Object.entries(templateVars)) {
+      contractCode = contractCode.replace(new RegExp(`{{${key}}}`, 'g'), String(value));
+    }
+
+    // 验证生成的代码
+    this.validateGeneratedCode(contractCode);
+
+    return contractCode;
+  }
+
+  private validateParams(params: NFTContractParams): void {
+    if (!params.contractName || params.contractName.length < 3) {
+      throw new Error('Contract name must be at least 3 characters');
+    }
+    if (!params.collectionName || params.collectionName.length < 1) {
+      throw new Error('Collection name is required');
+    }
+    if (params.maxSupply <= 0 || params.maxSupply > 1000000) {
+      throw new Error('Max supply must be between 1 and 1,000,000');
+    }
+    if (params.royaltyPercentage < 0 || params.royaltyPercentage > 50) {
+      throw new Error('Royalty percentage must be between 0 and 50');
+    }
+  }
+
+  private generateMetadataRequirements(params: NFTContractParams): string {
+    return `-- Metadata requirements: name, description, image, attributes`;
+  }
+
+  private generateCustomFeatures(params: NFTContractParams): string {
+    const features = [];
+
+    if (params.features?.whitelist) {
+      features.push(`whitelistEnabled = false`);
+    }
+
+    if (params.features?.burnable) {
+      features.push(`
+-- Burn Handler
+Handlers.add(
+    "BurnNFT",
+    Handlers.utils.hasMatchingTag("Action", "Burn"),
+    function(msg)
+        local tokenId = msg.TokenId
+        if ContractState.owners[tokenId] == msg.From then
+            ContractState.owners[tokenId] = nil
+            ContractState.balances[msg.From] = (ContractState.balances[msg.From] or 0) - 1
+            ContractState.totalSupply = ContractState.totalSupply - 1
+            -- Additional burn logic here
+        end
+    end
+)`);
+    }
+
+    return features.join('\n');
+  }
+
+  private validateGeneratedCode(code: string): void {
+    // 基本语法检查
+    if (!code.includes('Handlers.add')) {
+      throw new Error('Generated contract missing required handlers');
+    }
+
+    // 安全检查：防止代码注入
+    const dangerousPatterns = [
+      'os.execute',
+      'io.open',
+      'loadfile',
+      'dofile'
+    ];
+
+    for (const pattern of dangerousPatterns) {
+      if (code.includes(pattern)) {
+        throw new Error(`Dangerous code pattern detected: ${pattern}`);
+      }
+    }
+  }
+}
+```
+
+### 7.4 AO 进程部署系统
+
+#### 7.4.1 动态部署服务
+
+```typescript
+// src/services/NFTDeploymentService.ts
+import { connect, createDataItemSigner } from '@permaweb/aoconnect';
+import Arweave from 'arweave';
+import { NFTContractGenerator, NFTContractParams } from './NFTContractGenerator';
+
+export interface DeploymentResult {
+  processId: string;
+  moduleTxId: string;
+  contractAddress: string;
+  deploymentTime: number;
+  status: 'success' | 'failed';
+}
+
+export class NFTDeploymentService {
+  private ao;
+  private arweave;
+  private contractGenerator: NFTContractGenerator;
+
+  constructor() {
+    // 初始化 AO 连接
+    this.ao = connect({
+      gateway: 'https://arweave.g8way.io' // 使用最新的 G8 网关
+    });
+
+    // 初始化 Arweave
+    this.arweave = Arweave.init({
+      host: 'arweave.net',
+      port: 443,
+      protocol: 'https'
+    });
+
+    // 初始化合约生成器
+    this.contractGenerator = new NFTContractGenerator('/templates/nft-contract-template.lua');
+  }
+
+  /**
+   * 部署用户 NFT 合约
+   */
+  public async deployNFTContract(
+    params: NFTContractParams,
+    wallet: any
+  ): Promise<DeploymentResult> {
+    const startTime = Date.now();
+
+    try {
+      // 步骤 1: 生成 Lua 合约代码
+      console.log('Generating contract code...');
+      const contractCode = await this.contractGenerator.generateContract(params);
+
+      // 步骤 2: 上传模块到 Arweave
+      console.log('Uploading module to Arweave...');
+      const moduleTxId = await this.uploadModuleToArweave(contractCode, wallet);
+
+      // 步骤 3: 部署 AO 进程
+      console.log('Deploying AO process...');
+      const processId = await this.deployAOProcess(moduleTxId, wallet);
+
+      // 步骤 4: 初始化进程
+      console.log('Initializing process...');
+      await this.initializeProcess(processId, params);
+
+      return {
+        processId,
+        moduleTxId,
+        contractAddress: processId,
+        deploymentTime: Date.now() - startTime,
+        status: 'success'
+      };
+
+    } catch (error) {
+      console.error('Deployment failed:', error);
+      return {
+        processId: '',
+        moduleTxId: '',
+        contractAddress: '',
+        deploymentTime: Date.now() - startTime,
+        status: 'failed'
+      };
+    }
+  }
+
+  /**
+   * 上传 Lua 模块到 Arweave
+   */
+  private async uploadModuleToArweave(
+    contractCode: string,
+    wallet: any
+  ): Promise<string> {
+    // 创建交易
+    const transaction = await this.arweave.createTransaction({
+      data: contractCode
+    });
+
+    // 添加元数据标签
+    transaction.addTag('Content-Type', 'text/plain');
+    transaction.addTag('App-Name', 'Aeternum-NFT-Contract');
+    transaction.addTag('Contract-Version', '1.0.0');
+    transaction.addTag('Timestamp', Date.now().toString());
+
+    // 使用钱包签名
+    await this.arweave.transactions.sign(transaction, wallet);
+
+    // 提交交易
+    const response = await this.arweave.transactions.post(transaction);
+
+    if (response.status !== 200) {
+      throw new Error(`Failed to upload module: ${response.statusText}`);
+    }
+
+    return transaction.id;
+  }
+
+  /**
+   * 部署 AO 进程
+   */
+  private async deployAOProcess(
+    moduleTxId: string,
+    wallet: any
+  ): Promise<string> {
+    // 创建数据项签名器
+    const signer = createDataItemSigner(wallet);
+
+    // 准备 spawn 消息
+    const spawnMessage = {
+      target: 'AOS',
+      action: 'Spawn',
+      module: moduleTxId,
+      scheduler: 'SCHEDULER_ADDRESS', // AO 调度器地址
+      tags: {
+        'App-Name': 'Aeternum-NFT-Process',
+        'Contract-Type': 'NFT-Contract',
+        'Created-By': wallet.address
+      }
+    };
+
+    // 发送 spawn 消息
+    const result = await this.ao.message(spawnMessage);
+
+    // 从结果中提取进程 ID
+    const processId = this.extractProcessIdFromResult(result);
+
+    return processId;
+  }
+
+  /**
+   * 初始化新部署的进程
+   */
+  private async initializeProcess(
+    processId: string,
+    params: NFTContractParams
+  ): Promise<void> {
+    // 发送初始化消息
+    await this.ao.message({
+      target: processId,
+      action: 'Initialize',
+      data: {
+        contractName: params.contractName,
+        collectionName: params.collectionName,
+        creator: params.creatorAddress
+      }
+    });
+
+    // 等待初始化完成
+    await this.waitForProcessReady(processId);
+  }
+
+  /**
+   * 从 AO 结果中提取进程 ID
+   */
+  private extractProcessIdFromResult(result: any): string {
+    // 实现进程ID提取逻辑
+    // 这通常从消息结果的特定字段中获取
+    return result.processId || result.Process || result.process_id;
+  }
+
+  /**
+   * 等待进程准备就绪
+   */
+  private async waitForProcessReady(processId: string): Promise<void> {
+    // 实现等待逻辑
+    // 轮询进程状态直到就绪
+  }
+}
+```
+
+#### 7.4.2 前端部署界面
+
+```typescript
+// src/components/NFTDeploymentPanel.tsx
+import React, { useState } from 'react';
+import { useWallet } from '@utils/wallet';
+import { NFTDeploymentService, NFTContractParams } from '@services/NFTDeploymentService';
+
+interface DeploymentFormData {
+  contractName: string;
+  collectionName: string;
+  maxSupply: number;
+  mintPrice: string;
+  royaltyPercentage: number;
+  description: string;
+  features: {
+    whitelist: boolean;
+    reveal: boolean;
+    burnable: boolean;
+    pausable: boolean;
+  };
+}
+
+export const NFTDeploymentPanel: React.FC = () => {
+  const { wallet } = useWallet();
+  const [formData, setFormData] = useState<DeploymentFormData>({
+    contractName: '',
+    collectionName: '',
+    maxSupply: 10000,
+    mintPrice: '100',
+    royaltyPercentage: 5,
+    description: '',
+    features: {
+      whitelist: false,
+      reveal: false,
+      burnable: true,
+      pausable: true
+    }
+  });
+
+  const [deploymentStatus, setDeploymentStatus] = useState<string>('');
+  const [isDeploying, setIsDeploying] = useState(false);
+
+  const handleDeploy = async () => {
+    if (!wallet) {
+      setDeploymentStatus('请先连接钱包');
+      return;
+    }
+
+    setIsDeploying(true);
+    setDeploymentStatus('正在准备部署...');
+
+    try {
+      // 准备部署参数
+      const params: NFTContractParams = {
+        contractName: formData.contractName,
+        collectionName: formData.collectionName,
+        maxSupply: formData.maxSupply,
+        mintPrice: formData.mintPrice,
+        royaltyPercentage: formData.royaltyPercentage,
+        creatorAddress: wallet.address,
+        description: formData.description,
+        features: formData.features
+      };
+
+      // 创建部署服务
+      const deploymentService = new NFTDeploymentService();
+
+      // 执行部署
+      setDeploymentStatus('正在生成合约代码...');
+      const result = await deploymentService.deployNFTContract(params, wallet);
+
+      if (result.status === 'success') {
+        setDeploymentStatus(`部署成功！合约地址: ${result.contractAddress}`);
+        // 可以保存部署信息到本地存储或数据库
+        saveDeploymentInfo(result);
+      } else {
+        setDeploymentStatus('部署失败，请重试');
+      }
+
+    } catch (error) {
+      console.error('Deployment error:', error);
+      setDeploymentStatus(`部署出错: ${error.message}`);
+    } finally {
+      setIsDeploying(false);
+    }
+  };
+
+  const saveDeploymentInfo = (result: any) => {
+    const deployments = JSON.parse(localStorage.getItem('nftDeployments') || '[]');
+    deployments.push({
+      ...result,
+      contractName: formData.contractName,
+      collectionName: formData.collectionName,
+      deployedAt: new Date().toISOString()
+    });
+    localStorage.setItem('nftDeployments', JSON.stringify(deployments));
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto p-6">
+      <h2 className="text-2xl font-bold mb-6">部署 NFT 合约</h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* 基本信息 */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">基本信息</h3>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">合约名称</label>
+            <input
+              type="text"
+              value={formData.contractName}
+              onChange={(e) => setFormData({...formData, contractName: e.target.value})}
+              className="w-full p-2 border rounded"
+              placeholder="MyNFTContract"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">NFT 系列名称</label>
+            <input
+              type="text"
+              value={formData.collectionName}
+              onChange={(e) => setFormData({...formData, collectionName: e.target.value})}
+              className="w-full p-2 border rounded"
+              placeholder="My Awesome Collection"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">最大供应量</label>
+            <input
+              type="number"
+              value={formData.maxSupply}
+              onChange={(e) => setFormData({...formData, maxSupply: parseInt(e.target.value)})}
+              className="w-full p-2 border rounded"
+              min="1"
+              max="1000000"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">铸造价格 (AO)</label>
+            <input
+              type="text"
+              value={formData.mintPrice}
+              onChange={(e) => setFormData({...formData, mintPrice: e.target.value})}
+              className="w-full p-2 border rounded"
+              placeholder="100"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">版税百分比</label>
+            <input
+              type="number"
+              value={formData.royaltyPercentage}
+              onChange={(e) => setFormData({...formData, royaltyPercentage: parseInt(e.target.value)})}
+              className="w-full p-2 border rounded"
+              min="0"
+              max="50"
+            />
+          </div>
+        </div>
+
+        {/* 功能选项 */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">功能选项</h3>
+
+          <div className="space-y-2">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.features.whitelist}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  features: {...formData.features, whitelist: e.target.checked}
+                })}
+                className="mr-2"
+              />
+              启用白名单预售
+            </label>
+
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.features.burnable}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  features: {...formData.features, burnable: e.target.checked}
+                })}
+                className="mr-2"
+              />
+              支持销毁功能
+            </label>
+
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.features.pausable}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  features: {...formData.features, pausable: e.target.checked}
+                })}
+                className="mr-2"
+              />
+              支持暂停功能
+            </label>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">项目描述</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              className="w-full p-2 border rounded h-24"
+              placeholder="描述您的NFT系列..."
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 部署状态 */}
+      {deploymentStatus && (
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded">
+          <p className="text-blue-800">{deploymentStatus}</p>
+        </div>
+      )}
+
+      {/* 部署按钮 */}
+      <div className="mt-8 flex justify-center">
+        <button
+          onClick={handleDeploy}
+          disabled={isDeploying || !wallet}
+          className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        >
+          {isDeploying ? '部署中...' : '部署 NFT 合约'}
+        </button>
+      </div>
+    </div>
+  );
+};
+```
+
+### 7.5 安全与权限管理
+
+#### 7.5.1 用户进程管理
+
+```typescript
+// src/services/UserProcessManager.ts
+export class UserProcessManager {
+  /**
+   * 获取用户部署的所有 NFT 合约
+   */
+  public async getUserContracts(userAddress: string): Promise<NFTContract[]> {
+    // 从 Arweave 查询用户的合约
+    const contracts = await this.queryUserContractsFromArweave(userAddress);
+
+    // 从本地存储获取缓存信息
+    const cachedContracts = this.getCachedContracts(userAddress);
+
+    // 合并和验证
+    return this.mergeContractInfo(contracts, cachedContracts);
+  }
+
+  /**
+   * 验证用户对合约的访问权限
+   */
+  public async validateContractAccess(
+    userAddress: string,
+    contractProcessId: string
+  ): Promise<boolean> {
+    // 查询合约的创建者
+    const contractInfo = await this.getContractInfo(contractProcessId);
+
+    // 检查是否为合约创建者
+    if (contractInfo.creator === userAddress) {
+      return true;
+    }
+
+    // 检查是否为合约管理员（如果有管理员功能）
+    return await this.checkAdminAccess(contractProcessId, userAddress);
+  }
+
+  /**
+   * 管理用户合约
+   */
+  public async manageUserContract(
+    userAddress: string,
+    contractProcessId: string,
+    action: 'pause' | 'unpause' | 'update' | 'transfer',
+    params?: any
+  ): Promise<void> {
+    // 验证权限
+    const hasAccess = await this.validateContractAccess(userAddress, contractProcessId);
+    if (!hasAccess) {
+      throw new Error('Unauthorized access to contract');
+    }
+
+    // 执行管理操作
+    await this.sendAdminMessage(contractProcessId, action, params);
+  }
+}
+```
+
+#### 7.5.2 合约安全验证
+
+```typescript
+// src/services/ContractSecurityValidator.ts
+export class ContractSecurityValidator {
+  /**
+   * 验证生成的合约代码安全性
+   */
+  public async validateContractSecurity(
+    contractCode: string,
+    params: NFTContractParams
+  ): Promise<SecurityReport> {
+    const issues: SecurityIssue[] = [];
+
+    // 检查危险的 Lua 函数
+    issues.push(...this.checkDangerousFunctions(contractCode));
+
+    // 检查合约逻辑漏洞
+    issues.push(...this.checkContractLogic(contractCode, params));
+
+    // 检查资源限制
+    issues.push(...this.checkResourceLimits(contractCode));
+
+    // 检查访问控制
+    issues.push(...this.checkAccessControl(contractCode));
+
+    return {
+      isSecure: issues.filter(i => i.severity === 'critical').length === 0,
+      issues,
+      recommendations: this.generateRecommendations(issues)
+    };
+  }
+
+  private checkDangerousFunctions(code: string): SecurityIssue[] {
+    const dangerousPatterns = [
+      { pattern: 'os.execute', risk: 'Command execution' },
+      { pattern: 'io.open', risk: 'File system access' },
+      { pattern: 'loadfile', risk: 'Dynamic code loading' },
+      { pattern: 'dofile', risk: 'File execution' },
+      { pattern: 'require', risk: 'External module loading' }
+    ];
+
+    const issues: SecurityIssue[] = [];
+
+    for (const { pattern, risk } of dangerousPatterns) {
+      if (code.includes(pattern)) {
+        issues.push({
+          type: 'dangerous_function',
+          severity: 'critical',
+          description: `Dangerous Lua function detected: ${pattern}`,
+          risk: risk,
+          location: this.findPatternLocation(code, pattern)
+        });
+      }
+    }
+
+    return issues;
+  }
+
+  private checkContractLogic(code: string, params: NFTContractParams): SecurityIssue[] {
+    const issues: SecurityIssue[] = [];
+
+    // 检查最大供应量限制
+    if (params.maxSupply > 100000) {
+      issues.push({
+        type: 'logic_issue',
+        severity: 'warning',
+        description: 'Very high max supply may cause performance issues',
+        risk: 'Performance degradation'
+      });
+    }
+
+    // 检查版税设置
+    if (params.royaltyPercentage > 20) {
+      issues.push({
+        type: 'logic_issue',
+        severity: 'warning',
+        description: 'High royalty percentage may discourage buyers',
+        risk: 'Economic disincentive'
+      });
+    }
+
+    return issues;
+  }
+}
+```
+
+### 7.6 部署监控与维护
+
+#### 7.6.1 进程监控系统
+
+```typescript
+// src/services/ProcessMonitor.ts
+export class ProcessMonitor {
+  private monitors: Map<string, ProcessMonitorConfig> = new Map();
+
+  /**
+   * 监控用户 NFT 合约进程
+   */
+  public async monitorUserContracts(userAddress: string): Promise<void> {
+    const contracts = await this.getUserContracts(userAddress);
+
+    for (const contract of contracts) {
+      await this.setupProcessMonitoring(contract.processId, {
+        userAddress,
+        contractName: contract.name,
+        alertThresholds: {
+          mintRate: 100, // 每小时最多100次铸造
+          errorRate: 0.05, // 错误率超过5%
+          responseTime: 5000 // 响应时间超过5秒
+        }
+      });
+    }
+  }
+
+  /**
+   * 设置进程监控
+   */
+  private async setupProcessMonitoring(
+    processId: string,
+    config: ProcessMonitorConfig
+  ): Promise<void> {
+    const monitor = {
+      processId,
+      config,
+      metrics: {
+        totalMessages: 0,
+        errorCount: 0,
+        lastActivity: Date.now(),
+        averageResponseTime: 0
+      },
+      alerts: []
+    };
+
+    this.monitors.set(processId, monitor);
+
+    // 开始监控
+    this.startMonitoring(monitor);
+  }
+
+  /**
+   * 开始监控进程
+   */
+  private startMonitoring(monitor: ProcessMonitor): void {
+    setInterval(async () => {
+      try {
+        await this.checkProcessHealth(monitor);
+
+        // 检查是否需要触发告警
+        if (this.shouldTriggerAlert(monitor)) {
+          await this.triggerAlert(monitor);
+        }
+
+      } catch (error) {
+        console.error(`Monitoring error for ${monitor.processId}:`, error);
+      }
+    }, 60000); // 每分钟检查一次
+  }
+}
+```
+
+
+## 8. AO 网络兼容性分析：HyperBEAM vs. 遗留网络 (Legacy Network)
 
 ### Aeternum 项目的网络选择
 
